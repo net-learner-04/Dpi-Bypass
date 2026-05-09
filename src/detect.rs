@@ -1,8 +1,12 @@
-use crate::parser;
+use crate::{forge, injector::Injector, parser};
 use nfq::{Queue, Verdict};
 use std::io;
 
 pub fn start_control() -> io::Result<()> {
+    let domain_list = ["youtube.com"];
+
+    let injector = Injector::new()?;
+
     let mut queue = Queue::open()?;
     queue.bind(0)?;
 
@@ -34,6 +38,11 @@ pub fn start_control() -> io::Result<()> {
         }
 
         let tcp_header_len = (payload[ip_header_len + 12] >> 4) as usize * 4;
+        if tcp_header_len < 20 {
+            msg.set_verdict(Verdict::Accept);
+            queue.verdict(msg)?;
+            continue;
+        }
 
         let tls_start_idx = ip_header_len + tcp_header_len;
 
@@ -52,7 +61,18 @@ pub fn start_control() -> io::Result<()> {
         }
 
         if let Some(domain) = parser::extract_sni(tls_data) {
-            println!("domain {}", domain);
+            println!("domain: {}",domain);
+            if domain_list.iter().any(|&target| domain.contains(target)) {
+                if let Some((target_ip, frag_1, frag_2)) = forge::split(payload) {
+                    injector.shoot(target_ip, &frag_1)?;
+                    injector.shoot(target_ip, &frag_2)?;
+                    println!("dpi success: {}", domain);
+
+                    msg.set_verdict(Verdict::Drop);
+                    queue.verdict(msg)?;
+                    continue;
+                }
+            }
         }
 
         msg.set_verdict(Verdict::Accept);
