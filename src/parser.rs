@@ -4,12 +4,6 @@ pub fn extract_sni(buf: &[u8]) -> Option<String> {
 
     if buf[0] != 0x16 || buf[1] != 0x03 {return None;}
 
-    if buf.len() < 5 || buf[0] != 0x16 {return None;}
-    
-    // tls record length check -> fragment packet detect
-    let record_len = ((buf[3] as usize) << 8) | (buf[4] as usize);
-    if buf.len() < 5 + record_len {return None;}
-
     let mut index = 5;
     
     // handshake type check (0x01 = ClientHello)
