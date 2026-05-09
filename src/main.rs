@@ -1,8 +1,10 @@
 mod config;
+mod detect;
+mod forge;
+mod injector;
 mod parser;
-mod pkt_control;
 use config::Iptables;
-use std::io;
+use std::{io, process};
 
 fn main() -> io::Result<()> {
     config::root_check();
@@ -23,7 +25,12 @@ fn main() -> io::Result<()> {
 
     rule.apply()?;
 
-    pkt_control::start_control()?;
+    ctrlc::set_handler(|| {
+        process::exit(0);
+    })
+    .unwrap();
+
+    detect::start_control()?;
 
     Ok(())
 }
