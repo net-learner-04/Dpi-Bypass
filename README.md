@@ -1,2 +1,2 @@
-# DPI-Bypass
-Building a DPI Bypass Program Using Rust
+# Dpi-Bypass
+coding a Dpi Bypass tool Using Rust
